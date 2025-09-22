@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard – Estação EMBC</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; background: #f5f5f5; color: #333; }
+    h2 { text-align: center; margin-bottom: 40px; }
+    .grafico-container { 
+      width: 85%; 
+      margin: 25px auto; 
+      background: white; 
+      padding: 20px; 
+      border-radius: 14px; 
+      box-shadow: 0px 4px 12px rgba(0,0,0,0.08); 
+    }
+    canvas { max-width: 100%; }
+  </style>
+</head>
+<body>
+  <h2>📊 Dashboard da Estação EMBC</h2>
+
+  <div class="grafico-container">
+    <h3>🌡️ Temperatura (°C)</h3>
+    <canvas id="graficoTemp"></canvas>
+  </div>
+
+  <div class="grafico-container">
+    <h3>💧 Umidade (%)</h3>
+    <canvas id="graficoUmid"></canvas>
+  </div>
+
+  <div class="grafico-container">
+    <h3>🌬️ Velocidade do Vento (m/s)</h3>
+    <canvas id="graficoVento"></canvas>
+  </div>
+
+  <div class="grafico-container">
+    <h3>☀️ Irradiação Solar</h3>
+    <canvas id="graficoSol"></canvas>
+  </div>
+
+  <script>
+    async function carregarCSV() {
+      const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR7EQ0WDdVrrSvfpFU_AKc7NwNhJfQkKo2ndSxZ6Qxg1JDZm7ww9eJTUDjGaPSZS-BqxZXP3WJ8JLbO/pub?output=csv";
+      const proxy = "https://api.allorigins.win/raw?url=";
+
+      const resp = await fetch(proxy + encodeURIComponent(sheetUrl));
+      const texto = await resp.text();
+
+      const linhas = texto.split("\n").map(l => l.split(","));
+      const header = linhas[0]; // cabeçalhos
+      const dados = linhas.slice(1); // dados
+
+      const tempo = dados.map(l => l[2]); // HORARIOS
+      const temperatura = dados.map(l => parseFloat(l[3]));
+      const umidade = dados.map(l => parseFloat(l[4]));
+      const vento = dados.map(l => parseFloat(l[5]));
+      const irradiacao = dados.map(l => parseFloat(l[6]));
+
+      return { tempo, temperatura, umidade, vento, irradiacao };
+    }
+
+    async function desenharGraficos() {
+      const { tempo, temperatura, umidade, vento, irradiacao } = await carregarCSV();
+
+      // Função para criar gráfico
+      function criarGrafico(ctx, label, data, cor) {
+        new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: tempo,
+            datasets: [{
+              label: label,
+              data: data,
+              borderColor: cor,
+              backgroundColor: cor + "33", // cor transparente
+              tension: 0.3,
+              pointRadius: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { x: { display: true }, y: { beginAtZero: false } }
+          }
+        });
+      }
+
+      criarGrafico(document.getElementById("graficoTemp"), "Temperatura", temperatura, "red");
+      criarGrafico(document.getElementById("graficoUmid"), "Umidade", umidade, "blue");
+      criarGrafico(document.getElementById("graficoVento"), "Vento", vento, "green");
+      criarGrafico(document.getElementById("graficoSol"), "Irradiação Solar", irradiacao, "orange");
+    }
+
+    desenharGraficos();
+  </script>
+</body>
+</html>
