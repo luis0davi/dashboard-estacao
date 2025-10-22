@@ -1,0 +1,34 @@
+function doGet(e) {
+  var url = "http://200.137.6.124/?command=TableDisplay&table=Diario&records=24";
+  var html = UrlFetchApp.fetch(url).getContentText();
+
+  // Extrai linhas da tabela (remove tags HTML)
+  var linhas = html.match(/<tr[\s\S]*?<\/tr>/g);
+  if (!linhas) {
+    return ContentService.createTextOutput(
+      JSON.stringify({ erro: "Tabela não encontrada" })
+    ).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  var dados = linhas.map(function(linha) {
+    var colunas = linha.match(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/g);
+    if (!colunas) return null;
+    return colunas.map(function(c) {
+      return c.replace(/<[^>]+>/g, '').trim();
+    });
+  }).filter(Boolean);
+
+  // transforma em objetos JSON
+  var cabecalho = dados[0];
+  var registros = dados.slice(1).map(function(row) {
+    var obj = {};
+    row.forEach(function(valor, i) {
+      obj[cabecalho[i] || ("coluna_" + i)] = valor;
+    });
+    return obj;
+  });
+
+  return ContentService
+    .createTextOutput(JSON.stringify(registros))
+    .setMimeType(ContentService.MimeType.JSON);
+}
